@@ -25,15 +25,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 // ---- Load project from Supabase ----
 async function loadProject(projectId) {
   try {
-    let projects = [];
-
-    try {
-      projects = await supabase.select('projects', `?id=eq.${projectId}`);
-    } catch (err) {
-      // Fallback to localStorage
-      const all = JSON.parse(localStorage.getItem('aura_projects') || '[]');
-      projects = all.filter(p => p.id === projectId);
-    }
+    const projects = await supabase.select('projects', `?id=eq.${projectId}`);
 
     if (!projects || projects.length === 0) {
       showNotFound();
@@ -63,30 +55,26 @@ function renderProject(project) {
 
   // Status badge
   const badge = document.getElementById('clientStatusBadge');
-  const statusMap = {
-    pending: 'Awaiting Review',
-    approved: 'Approved',
-    needs_changes: 'Needs Changes'
-  };
-  badge.textContent = statusMap[project.status] || 'Awaiting Review';
-  if (project.status === 'approved') badge.className = 'client-badge approved';
-  if (project.status === 'needs_changes') badge.className = 'client-badge changes';
+  badge.textContent = 'Live Review';
+  badge.className = 'client-badge';
 
   // Download button
   const dlBtn = document.getElementById('downloadBtn');
-  dlBtn.href = project.file_url;
+  const assetUrl = project.image_url || project.file_url || '';
+  dlBtn.href = assetUrl;
   dlBtn.download = project.title;
 
   // Render file
   const img = document.getElementById('designImage');
   const pdf = document.getElementById('designPdf');
 
-  if (project.file_type === 'pdf') {
-    pdf.src = project.file_url;
+  const isPdf = assetUrl.toLowerCase().includes('.pdf');
+  if (isPdf) {
+    pdf.src = assetUrl;
     pdf.style.display = 'block';
     img.style.display = 'none';
   } else {
-    img.src = project.file_url;
+    img.src = assetUrl;
     img.style.display = 'block';
     pdf.style.display = 'none';
   }
@@ -233,13 +221,7 @@ function updateCommentCount() {
 // ---- Load existing annotations from Supabase ----
 async function loadExistingAnnotations(projectId) {
   try {
-    let saved = [];
-    try {
-      saved = await supabase.select('feedback', `?project_id=eq.${projectId}&type=eq.annotation&order=created_at.asc`);
-    } catch {
-      const all = JSON.parse(localStorage.getItem('aura_feedback') || '[]');
-      saved = all.filter(f => f.project_id === projectId && f.type === 'annotation');
-    }
+    const saved = await supabase.select('feedback', `?project_id=eq.${projectId}&type=eq.annotation&order=created_at.asc`);
 
     if (saved && saved.length > 0) {
       saved.forEach(ann => {
@@ -252,13 +234,7 @@ async function loadExistingAnnotations(projectId) {
 
     // Load decision if already submitted
     try {
-      let decisions = [];
-      try {
-        decisions = await supabase.select('feedback', `?project_id=eq.${projectId}&type=eq.decision`);
-      } catch {
-        const all = JSON.parse(localStorage.getItem('aura_feedback') || '[]');
-        decisions = all.filter(f => f.project_id === projectId && f.type === 'decision');
-      }
+      const decisions = await supabase.select('feedback', `?project_id=eq.${projectId}&type=eq.decision`);
 
       if (decisions && decisions.length > 0) {
         const dec = decisions[0];
@@ -318,12 +294,7 @@ async function submitAllFeedback() {
         comment: ann.comment,
         created_at: new Date().toISOString()
       };
-      return supabase.insert('feedback', data).catch(() => {
-        // Fallback: localStorage
-        const all = JSON.parse(localStorage.getItem('aura_feedback') || '[]');
-        all.push(data);
-        localStorage.setItem('aura_feedback', JSON.stringify(all));
-      });
+      return supabase.insert('feedback', data);
     });
 
     // 2. Save decision
@@ -334,39 +305,10 @@ async function submitAllFeedback() {
       created_at: new Date().toISOString()
     };
 
-    try {
-      await Promise.all([
-        ...savePromises,
-        supabase.insert('feedback', decisionData)
-      ]);
-
-      // 3. Update project status in Supabase
-      await supabase.update('projects', currentProject.id, { status: selectedDecision });
-
-    } catch (err) {
-      // Fallback localStorage
-      const all = JSON.parse(localStorage.getItem('aura_feedback') || '[]');
-      annotations.forEach(ann => {
-        all.push({
-          project_id: currentProject.id,
-          type: 'annotation',
-          x_percent: ann.x_percent,
-          y_percent: ann.y_percent,
-          comment: ann.comment,
-          created_at: new Date().toISOString()
-        });
-      });
-      all.push(decisionData);
-      localStorage.setItem('aura_feedback', JSON.stringify(all));
-
-      // Update localStorage project status
-      const projects = JSON.parse(localStorage.getItem('aura_projects') || '[]');
-      const idx = projects.findIndex(p => p.id === currentProject.id);
-      if (idx !== -1) {
-        projects[idx].status = selectedDecision;
-        localStorage.setItem('aura_projects', JSON.stringify(projects));
-      }
-    }
+    await Promise.all([
+      ...savePromises,
+      supabase.insert('feedback', decisionData)
+    ]);
 
     // Show thank you modal
     document.getElementById('thankYouModal').style.display = 'flex';
@@ -388,7 +330,7 @@ async function submitAllFeedback() {
 
   } catch (err) {
     console.error('Submission error:', err);
-    alert('There was an error submitting. Please try again.');
+    alert('Could not submit to Supabase. Please check internet/RLS and try again.');
     btn.disabled = false;
     btn.textContent = 'Submit Feedback';
   }

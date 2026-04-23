@@ -20,7 +20,7 @@ async function loadGallery() {
   const countEl = document.getElementById('projectCount');
 
   try {
-    const projects = await supabase.select('projects', '?order=created_at.desc');
+    const projects = await supabase.select('projects');
 
     if (!projects || projects.length === 0) {
       emptyState.style.display = 'flex';
@@ -40,32 +40,9 @@ async function loadGallery() {
 
   } catch (err) {
     console.error('Failed to load projects:', err);
-    // Fallback to localStorage if Supabase not configured
-    loadFromLocalStorage();
-  }
-}
-
-// ---- Fallback: load from localStorage ----
-function loadFromLocalStorage() {
-  const grid = document.getElementById('galleryGrid');
-  const emptyState = document.getElementById('emptyState');
-  const countEl = document.getElementById('projectCount');
-
-  const projects = JSON.parse(localStorage.getItem('aura_projects') || '[]');
-
-  if (projects.length === 0) {
     emptyState.style.display = 'flex';
-    return;
+    emptyState.innerHTML = '<p style="color:var(--danger)">Could not load projects from Supabase.</p>';
   }
-
-  emptyState.style.display = 'none';
-  countEl.textContent = projects.length;
-  grid.innerHTML = '';
-
-  projects.forEach((project, index) => {
-    const card = createGalleryCard(project, index);
-    grid.appendChild(card);
-  });
 }
 
 // ---- Create a gallery card element ----
@@ -75,21 +52,21 @@ function createGalleryCard(project, index) {
   card.dataset.category = project.category || 'branding';
   card.style.animationDelay = `${index * 0.07}s`;
 
-  const isPdf = project.file_type === 'pdf';
+  const assetUrl = project.image_url || project.file_url || '';
+  const isPdf = assetUrl.toLowerCase().includes('.pdf');
   const thumbHtml = isPdf
     ? `<div class="card-pdf-thumb">
          <div class="pdf-icon">&#128196;</div>
          <span>PDF Document</span>
        </div>`
-    : `<img src="${project.file_url}" alt="${project.title}" loading="lazy" />`;
+    : `<img src="${assetUrl}" alt="${project.title}" loading="lazy" />`;
 
   card.innerHTML = `
     <div class="card-thumb">${thumbHtml}</div>
     <div class="card-body">
       <div class="card-category">${project.category || 'Design'}</div>
       <div class="card-title">${project.title}</div>
-      ${project.client_name ? `<div class="card-client">${project.client_name}</div>` : ''}
-      <div class="card-date">${formatDate(project.created_at)}</div>
+      ${project.user_id ? `<div class="card-client">${project.user_id}</div>` : ''}
     </div>
   `;
 
@@ -121,24 +98,25 @@ function openPreview(project) {
   const modal = document.getElementById('previewModal');
   const content = document.getElementById('previewContent');
 
-  const isPdf = project.file_type === 'pdf';
+  const assetUrl = project.image_url || project.file_url || '';
+  const isPdf = assetUrl.toLowerCase().includes('.pdf');
 
   content.innerHTML = `
     <div style="padding:32px">
       <div class="card-category" style="margin-bottom:8px">${project.category || 'Design'}</div>
       <h2 style="font-family:var(--font-display);font-size:1.8rem;font-weight:800;letter-spacing:-0.03em;margin-bottom:8px">${project.title}</h2>
-      ${project.client_name ? `<p style="color:var(--text-2);margin-bottom:20px">${project.client_name}</p>` : ''}
+      ${project.user_id ? `<p style="color:var(--text-2);margin-bottom:20px">${project.user_id}</p>` : ''}
       ${project.description ? `<p style="color:var(--text-2);font-size:0.9rem;margin-bottom:20px">${project.description}</p>` : ''}
 
       <div style="border-radius:12px;overflow:hidden;border:1px solid var(--border);margin-bottom:20px;background:var(--bg-2)">
         ${isPdf
-          ? `<iframe src="${project.file_url}" style="width:100%;height:500px;border:none"></iframe>`
-          : `<img src="${project.file_url}" alt="${project.title}" style="width:100%;display:block" />`
+          ? `<iframe src="${assetUrl}" style="width:100%;height:500px;border:none"></iframe>`
+          : `<img src="${assetUrl}" alt="${project.title}" style="width:100%;display:block" />`
         }
       </div>
 
       <div style="display:flex;gap:12px;flex-wrap:wrap">
-        <a href="${project.file_url}" download class="btn-primary">Download</a>
+        <a href="${assetUrl}" download class="btn-primary">Download</a>
         <a href="client.html?project=${project.id}" class="btn-ghost" target="_blank">View Client Page</a>
       </div>
     </div>

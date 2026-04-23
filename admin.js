@@ -146,10 +146,9 @@ async function uploadProject() {
   }, 200);
 
   try {
-    const projectId = generateProjectId();
+    const projectId = crypto.randomUUID();
     const fileExt = selectedFile.name.split('.').pop();
     const storagePath = `projects/${projectId}.${fileExt}`;
-    const fileType = selectedFile.type === 'application/pdf' ? 'pdf' : 'image';
 
     // 1. Upload file to Supabase Storage
     progressText.textContent = 'Uploading file...';
@@ -164,24 +163,12 @@ async function uploadProject() {
       id: projectId,
       title,
       category,
-      client_name: clientName || null,
       description: description || null,
-      file_url: fileUrl,
-      file_type: fileType,
-      storage_path: storagePath,
-      status: 'pending',
-      created_at: new Date().toISOString()
+      image_url: fileUrl,
+      user_id: clientName || 'admin'
     };
 
-    try {
-      await supabase.insert('projects', projectData);
-    } catch (dbErr) {
-      // Fallback: save to localStorage if Supabase not configured
-      console.warn('Supabase DB not available, saving to localStorage:', dbErr);
-      const existing = JSON.parse(localStorage.getItem('aura_projects') || '[]');
-      existing.unshift(projectData);
-      localStorage.setItem('aura_projects', JSON.stringify(existing));
-    }
+    await supabase.insert('projects', projectData);
 
     progressFill.style.width = '100%';
     progressText.textContent = 'Done!';
@@ -238,55 +225,52 @@ async function loadProjects() {
   const list = document.getElementById('adminProjectsList');
   list.innerHTML = '<div class="loading-spinner"></div>';
 
-  let projects = [];
-
   try {
-    projects = await supabase.select('projects', '?order=created_at.desc');
-  } catch (err) {
-    console.warn('Falling back to localStorage:', err);
-    projects = JSON.parse(localStorage.getItem('aura_projects') || '[]');
-  }
+    const projects = await supabase.select('projects');
 
-  if (!projects || projects.length === 0) {
-    list.innerHTML = '<p style="color:var(--text-3);text-align:center;padding:40px">No projects yet. Upload your first design.</p>';
-    return;
-  }
+    if (!projects || projects.length === 0) {
+      list.innerHTML = '<p style="color:var(--text-3);text-align:center;padding:40px">No projects yet. Upload your first design.</p>';
+      return;
+    }
 
-  list.innerHTML = '';
-  projects.forEach((project, index) => {
-    const card = document.createElement('div');
-    card.className = 'admin-project-card';
-    card.style.animationDelay = `${index * 0.06}s`;
+    list.innerHTML = '';
+    projects.forEach((project, index) => {
+      const card = document.createElement('div');
+      card.className = 'admin-project-card';
+      card.style.animationDelay = `${index * 0.06}s`;
 
-    const isPdf = project.file_type === 'pdf';
-    const statusClass = { pending: 'status-pending', approved: 'status-approved', needs_changes: 'status-changes' }[project.status] || 'status-pending';
-    const statusLabel = { pending: 'Awaiting Review', approved: 'Approved', needs_changes: 'Needs Changes' }[project.status] || 'Pending';
-    const clientLink = `${getSiteBaseUrl()}/client.html?project=${project.id}`;
+      const assetUrl = project.image_url || project.file_url || '';
+      const isPdf = assetUrl.toLowerCase().includes('.pdf');
+      const clientLink = `${getSiteBaseUrl()}/client.html?project=${project.id}`;
+      const storagePath = extractStoragePath(assetUrl);
 
-    card.innerHTML = `
-      <div class="admin-card-thumb">
-        ${isPdf
-          ? `<div style="display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--text-3)">
-               <div style="font-size:2rem">&#128196;</div>
-               <span style="font-size:0.8rem">PDF</span>
-             </div>`
-          : `<img src="${project.file_url}" alt="${project.title}" loading="lazy" />`
-        }
-      </div>
-      <div class="admin-card-body">
-        <div class="admin-card-title">${project.title}</div>
-        <div class="admin-card-meta">${project.category || ''}${project.client_name ? ' · ' + project.client_name : ''} · ${formatDate(project.created_at)}</div>
-        <div class="admin-card-status ${statusClass}">${statusLabel}</div>
-        <div class="admin-card-actions">
-          <button class="btn-sm" onclick="copyProjectLink('${clientLink}', this)">Copy Link</button>
-          <a href="client.html?project=${project.id}" class="btn-sm" target="_blank">Preview</a>
-          <button class="btn-sm danger" onclick="confirmDelete('${project.id}', '${project.storage_path || ''}')">Delete</button>
+      card.innerHTML = `
+        <div class="admin-card-thumb">
+          ${isPdf
+            ? `<div style="display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--text-3)">
+                 <div style="font-size:2rem">&#128196;</div>
+                 <span style="font-size:0.8rem">PDF</span>
+               </div>`
+            : `<img src="${assetUrl}" alt="${project.title}" loading="lazy" />`
+          }
         </div>
-      </div>
-    `;
+        <div class="admin-card-body">
+          <div class="admin-card-title">${project.title}</div>
+          <div class="admin-card-meta">${project.category || ''}${project.user_id ? ' · ' + project.user_id : ''}</div>
+          <div class="admin-card-actions">
+            <button class="btn-sm" onclick="copyProjectLink('${clientLink}', this)">Copy Link</button>
+            <a href="client.html?project=${project.id}" class="btn-sm" target="_blank">Preview</a>
+            <button class="btn-sm danger" onclick="confirmDelete('${project.id}', '${storagePath || ''}')">Delete</button>
+          </div>
+        </div>
+      `;
 
-    list.appendChild(card);
-  });
+      list.appendChild(card);
+    });
+  } catch (err) {
+    console.error('Failed to load projects from Supabase:', err);
+    list.innerHTML = '<p style="color:var(--danger);text-align:center;padding:40px">Could not load projects from Supabase. Check your table RLS/API setup and reload.</p>';
+  }
 }
 
 function copyProjectLink(link, btn) {
@@ -320,9 +304,8 @@ function confirmDelete(id, storagePath) {
         });
       } catch(e) {}
     } catch (err) {
-      // Fallback localStorage
-      const projects = JSON.parse(localStorage.getItem('aura_projects') || '[]');
-      localStorage.setItem('aura_projects', JSON.stringify(projects.filter(p => p.id !== deleteTargetId)));
+      console.error('Could not delete project from Supabase:', err);
+      alert('Delete failed in Supabase. Please verify RLS policies for projects/storage.');
     }
 
     closeDeleteModal();
@@ -343,54 +326,52 @@ async function loadFeedback() {
   const list = document.getElementById('adminFeedbackList');
   list.innerHTML = '<div class="loading-spinner"></div>';
 
-  let feedback = [];
-
   try {
-    feedback = await supabase.select('feedback', '?order=created_at.desc');
+    const feedback = await supabase.select('feedback', '?order=created_at.desc');
+
+    if (!feedback || feedback.length === 0) {
+      list.innerHTML = '<p style="color:var(--text-3);text-align:center;padding:40px">No client feedback yet.</p>';
+      return;
+    }
+
+    // Group by project
+    const byProject = {};
+    feedback.forEach(f => {
+      if (!byProject[f.project_id]) byProject[f.project_id] = [];
+      byProject[f.project_id].push(f);
+    });
+
+    list.innerHTML = '';
+
+    for (const [projectId, items] of Object.entries(byProject)) {
+      const card = document.createElement('div');
+      card.className = 'feedback-card';
+
+      const decision = items.find(f => f.type === 'decision');
+      const annotations = items.filter(f => f.type === 'annotation');
+
+      card.innerHTML = `
+        <div class="feedback-card-title">Project: ${projectId}</div>
+        <div class="feedback-card-meta">
+          ${items.length} feedback item(s) · ${formatDate(items[0].created_at)}
+          ${decision ? ` · Decision: <strong style="color:${decision.value === 'approved' ? 'var(--approve)' : 'var(--changes)'}">${decision.value === 'approved' ? 'Approved' : 'Needs Changes'}</strong>` : ''}
+        </div>
+        <div class="feedback-comments">
+          ${annotations.map((ann, i) => `
+            <div class="feedback-comment">
+              <div class="feedback-comment-num">Comment ${i + 1} · Position: ${Math.round(ann.x_percent)}%, ${Math.round(ann.y_percent)}%</div>
+              ${ann.comment}
+            </div>
+          `).join('')}
+          ${annotations.length === 0 ? '<p style="color:var(--text-3);font-size:0.85rem">No annotation comments.</p>' : ''}
+        </div>
+      `;
+
+      list.appendChild(card);
+    }
   } catch (err) {
-    console.warn('Falling back to localStorage for feedback:', err);
-    feedback = JSON.parse(localStorage.getItem('aura_feedback') || '[]');
-  }
-
-  if (!feedback || feedback.length === 0) {
-    list.innerHTML = '<p style="color:var(--text-3);text-align:center;padding:40px">No client feedback yet.</p>';
-    return;
-  }
-
-  // Group by project
-  const byProject = {};
-  feedback.forEach(f => {
-    if (!byProject[f.project_id]) byProject[f.project_id] = [];
-    byProject[f.project_id].push(f);
-  });
-
-  list.innerHTML = '';
-
-  for (const [projectId, items] of Object.entries(byProject)) {
-    const card = document.createElement('div');
-    card.className = 'feedback-card';
-
-    const decision = items.find(f => f.type === 'decision');
-    const annotations = items.filter(f => f.type === 'annotation');
-
-    card.innerHTML = `
-      <div class="feedback-card-title">Project: ${projectId}</div>
-      <div class="feedback-card-meta">
-        ${items.length} feedback item(s) · ${formatDate(items[0].created_at)}
-        ${decision ? ` · Decision: <strong style="color:${decision.value === 'approved' ? 'var(--approve)' : 'var(--changes)'}">${decision.value === 'approved' ? 'Approved' : 'Needs Changes'}</strong>` : ''}
-      </div>
-      <div class="feedback-comments">
-        ${annotations.map((ann, i) => `
-          <div class="feedback-comment">
-            <div class="feedback-comment-num">Comment ${i + 1} · Position: ${Math.round(ann.x_percent)}%, ${Math.round(ann.y_percent)}%</div>
-            ${ann.comment}
-          </div>
-        `).join('')}
-        ${annotations.length === 0 ? '<p style="color:var(--text-3);font-size:0.85rem">No annotation comments.</p>' : ''}
-      </div>
-    `;
-
-    list.appendChild(card);
+    console.error('Failed to load feedback from Supabase:', err);
+    list.innerHTML = '<p style="color:var(--danger);text-align:center;padding:40px">Could not load feedback from Supabase. Check RLS policies and reload.</p>';
   }
 }
 
@@ -400,4 +381,12 @@ function formatDate(dateStr) {
   return new Date(dateStr).toLocaleDateString('en-US', {
     year: 'numeric', month: 'short', day: 'numeric'
   });
+}
+
+function extractStoragePath(publicUrl) {
+  if (!publicUrl) return '';
+  const marker = '/storage/v1/object/public/designs/';
+  const idx = publicUrl.indexOf(marker);
+  if (idx === -1) return '';
+  return publicUrl.substring(idx + marker.length);
 }
