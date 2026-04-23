@@ -15,8 +15,8 @@
 // ============================================================
 // REPLACE THESE WITH YOUR SUPABASE PROJECT CREDENTIALS
 // ============================================================
-const SUPABASE_URL = 'https://YOUR_PROJECT_ID.supabase.co';
-const SUPABASE_ANON_KEY = 'YOUR_ANON_PUBLIC_KEY_HERE';
+const SUPABASE_URL = 'https://slqjwiyntcokxpcjfqox.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNscWp3aXludGNva3hwY2pmcW94Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3NzI1MjksImV4cCI6MjA5MjM0ODUyOX0.S28qgYieihoXpW9F6mIM7j5YTEX2oY3YvCkf_LIT3Cc';
 // ============================================================
 
 // ---- Supabase REST API helpers (no npm needed) ----
