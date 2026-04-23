@@ -731,6 +731,22 @@ select.glass-input option { background: var(--bg-2); }
   padding: 48px;
   min-height: 100vh;
 }
+.admin-topbar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  padding: 18px 22px;
+  margin-bottom: 28px;
+  border-radius: 18px;
+}
+.admin-topbar-brand { justify-content: center; }
+.admin-topbar-sub {
+  color: var(--text-2);
+  font-size: 0.82rem;
+  letter-spacing: 0.03em;
+}
 
 .admin-tab.hidden { display: none; }
 
@@ -753,6 +769,7 @@ select.glass-input option { background: var(--bg-2); }
   display: flex;
   flex-direction: column;
   gap: 20px;
+  border: 1px solid var(--border-bright);
 }
 .form-row {
   display: flex;
@@ -868,7 +885,7 @@ select.glass-input option { background: var(--bg-2); }
 .admin-project-card {
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  background: var(--surface);
+  background: linear-gradient(170deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02)), var(--surface);
   overflow: hidden;
   animation: fadeUp 0.4s ease both;
 }
@@ -938,7 +955,7 @@ select.glass-input option { background: var(--bg-2); }
 .feedback-card {
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  background: var(--surface);
+  background: linear-gradient(170deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02)), var(--surface);
   padding: 24px;
   animation: fadeUp 0.4s ease both;
 }
@@ -1350,6 +1367,7 @@ select.glass-input option { background: var(--bg-2); }
     padding: 16px;
   }
   .admin-main { margin-left: 0; padding: 24px 16px; }
+  .admin-topbar { margin-top: 8px; }
   .upload-form { padding: 24px; }
   .about-content { padding: 30px; }
   .client-header { padding: 14px 20px; }
