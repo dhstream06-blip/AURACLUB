@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aura Design — Review</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+</head>
+<body class="client-body">
+
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+
+  <!-- Loading state -->
+  <div id="clientLoading" class="gate-screen">
+    <div class="loading-spinner large"></div>
+  </div>
+
+  <!-- Not found state -->
+  <div id="clientNotFound" class="gate-screen hidden">
+    <div class="gate-card glass">
+      <div class="gate-brand">
+        <span class="brand-dot"></span>
+        <span class="brand-name">Aura Design</span>
+      </div>
+      <h2>Project Not Found</h2>
+      <p class="gate-sub">This link may be invalid or expired.</p>
+      <a href="index.html" class="btn-primary">Back to Portfolio</a>
+    </div>
+  </div>
+
+  <!-- Client Review Page -->
+  <div id="clientPage" class="hidden">
+
+    <!-- Header -->
+    <header class="client-header glass">
+      <div class="nav-brand">
+        <span class="brand-dot"></span>
+        <span class="brand-name">Aura Design</span>
+      </div>
+      <div class="client-header-right">
+        <span class="client-badge" id="clientStatusBadge">Awaiting Review</span>
+      </div>
+    </header>
+
+    <!-- Project Info -->
+    <div class="client-info">
+      <div class="client-meta">
+        <span class="client-category" id="clientCategory">Branding</span>
+        <h1 class="client-title" id="clientTitle">Project Title</h1>
+        <p class="client-desc" id="clientDesc"></p>
+      </div>
+      <div class="client-actions">
+        <a href="#" id="downloadBtn" class="btn-primary" download>Download File</a>
+        <button class="btn-ghost" onclick="toggleAnnotationMode()" id="annotationToggle">
+          Add Comment
+        </button>
+      </div>
+    </div>
+
+    <!-- Design Viewer with Annotation Layer -->
+    <div class="design-viewer-wrapper">
+      <div class="annotation-hint glass" id="annotationHint">
+        Click anywhere on the design to add a comment
+      </div>
+
+      <div class="design-viewer" id="designViewer">
+        <!-- Image or PDF preview -->
+        <div class="design-canvas" id="designCanvas">
+          <!-- File rendered here -->
+          <img id="designImage" src="" alt="Design Preview" style="display:none" />
+          <iframe id="designPdf" src="" style="display:none"></iframe>
+        </div>
+
+        <!-- Annotation markers layer (overlaid on design) -->
+        <div class="annotations-layer" id="annotationsLayer"></div>
+      </div>
+    </div>
+
+    <!-- Feedback Panel -->
+    <div class="feedback-panel">
+      <div class="feedback-left glass">
+        <h3 class="panel-title">Comments <span class="comment-count" id="commentCount">0</span></h3>
+        <div class="comments-list" id="commentsList">
+          <p class="empty-comments">No comments yet. Click on the design to add one.</p>
+        </div>
+      </div>
+
+      <div class="feedback-right glass">
+        <h3 class="panel-title">Your Decision</h3>
+        <p class="decision-desc">Once you've reviewed the design, let us know your decision below.</p>
+
+        <div class="decision-buttons">
+          <button class="btn-approve" onclick="submitDecision('approved')" id="btnApprove">
+            <span class="decision-icon">&#10003;</span>
+            Approved
+          </button>
+          <button class="btn-changes" onclick="submitDecision('needs_changes')" id="btnChanges">
+            <span class="decision-icon">&#9998;</span>
+            Needs Changes
+          </button>
+        </div>
+
+        <div class="decision-note" id="decisionNote" style="display:none">
+          <p id="decisionNoteText"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Submit Feedback Button -->
+    <div class="submit-feedback-bar glass">
+      <p class="submit-hint" id="submitHint">Add comments on the design above, then submit your feedback.</p>
+      <button class="btn-primary" onclick="submitAllFeedback()" id="submitFeedbackBtn">Submit Feedback</button>
+    </div>
+
+  </div>
+
+  <!-- Annotation Comment Modal -->
+  <div class="modal-overlay" id="annotationModal" onclick="closeAnnotationModal(event)">
+    <div class="modal glass">
+      <h3>Add Comment</h3>
+      <p class="modal-sub">Describe what you'd like changed or noted at this point.</p>
+      <textarea id="annotationComment" class="glass-input" rows="4" placeholder="e.g. The font here feels too large, can we try something smaller?"></textarea>
+      <div style="display:flex;gap:12px;margin-top:16px">
+        <button class="btn-ghost full-width" onclick="closeAnnotationModal()">Cancel</button>
+        <button class="btn-primary full-width" onclick="saveAnnotation()">Add Comment</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Thank You Modal -->
+  <div class="modal-overlay" id="thankYouModal">
+    <div class="modal glass" style="text-align:center">
+      <div class="success-icon">&#10003;</div>
+      <h3>Feedback Submitted</h3>
+      <p>Your comments and decision have been sent to the designer. They will be in touch shortly.</p>
+      <button class="btn-primary" style="margin-top:20px" onclick="document.getElementById('thankYouModal').style.display='none'">Close</button>
+    </div>
+  </div>
+
+  <script src="supabase-client.js"></script>
+  <script src="client.js"></script>
+</body>
+</html>

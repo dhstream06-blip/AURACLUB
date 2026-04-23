@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aura Design — Creative Portfolio</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- Ambient background orbs -->
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <!-- Navigation -->
+  <nav class="navbar glass">
+    <div class="nav-brand">
+      <span class="brand-dot"></span>
+      <span class="brand-name">Aura Design</span>
+    </div>
+    <div class="nav-links">
+      <a href="#gallery" class="nav-link">Work</a>
+      <a href="#about" class="nav-link">About</a>
+      <button class="btn-admin" onclick="openAdminModal()">Admin</button>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-content">
+      <div class="hero-tag">Creative Studio</div>
+      <h1 class="hero-title">
+        Design that<br />
+        <span class="gradient-text">moves people</span>
+      </h1>
+      <p class="hero-subtitle">
+        A curated collection of brand identities, digital experiences,<br />
+        and visual systems crafted with intention.
+      </p>
+      <a href="#gallery" class="btn-primary">View Projects</a>
+    </div>
+    <div class="hero-visual">
+      <div class="floating-card card-1 glass">Brand Identity</div>
+      <div class="floating-card card-2 glass">UI/UX Design</div>
+      <div class="floating-card card-3 glass">Motion</div>
+    </div>
+  </section>
+
+  <!-- Gallery Section -->
+  <section class="gallery-section" id="gallery">
+    <div class="section-header">
+      <h2 class="section-title">Selected Work</h2>
+      <p class="section-sub">Projects shared with clients and collaborators</p>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="filter-bar">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="branding">Branding</button>
+      <button class="filter-btn" data-filter="ui">UI/UX</button>
+      <button class="filter-btn" data-filter="print">Print</button>
+    </div>
+
+    <div class="gallery-grid" id="galleryGrid">
+      <!-- Projects injected by script.js from Supabase -->
+      <div class="gallery-empty" id="emptyState">
+        <div class="empty-icon"></div>
+        <p>No projects yet. Upload your first design from the admin panel.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- About Section -->
+  <section class="about-section" id="about">
+    <div class="about-content glass">
+      <div class="about-text">
+        <h2>Built for designers,<br /><span class="gradient-text">loved by clients</span></h2>
+        <p>Aura Design is a private portfolio platform where design work is presented, shared, and refined through direct client collaboration.</p>
+      </div>
+      <div class="about-stats">
+        <div class="stat">
+          <span class="stat-num" id="projectCount">0</span>
+          <span class="stat-label">Projects</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num">100%</span>
+          <span class="stat-label">Client Satisfaction</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Admin Password Modal -->
+  <div class="modal-overlay" id="adminModal" onclick="closeAdminModal(event)">
+    <div class="modal glass">
+      <div class="modal-header">
+        <h3>Admin Access</h3>
+        <p>Enter your access code to continue</p>
+      </div>
+      <div class="modal-body">
+        <div class="input-group">
+          <input
+            type="password"
+            id="adminPassword"
+            class="glass-input"
+            placeholder="Access code"
+            maxlength="10"
+            onkeydown="if(event.key==='Enter') checkAdminPassword()"
+          />
+        </div>
+        <div class="modal-error" id="modalError">Incorrect access code</div>
+        <button class="btn-primary full-width" onclick="checkAdminPassword()">Enter</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Project Preview Modal -->
+  <div class="modal-overlay" id="previewModal" onclick="closePreviewModal(event)">
+    <div class="modal modal-large glass">
+      <button class="modal-close" onclick="closePreviewModal()">&#x2715;</button>
+      <div id="previewContent"></div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <p>Aura Design &copy; <span id="year"></span> — All rights reserved</p>
+  </footer>
+
+  <script src="supabase-client.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

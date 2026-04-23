@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aura Design — Admin</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+</head>
+<body class="admin-body">
+
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+
+  <!-- Admin Gate (shown if not authenticated) -->
+  <div id="adminGate" class="gate-screen">
+    <div class="gate-card glass">
+      <div class="gate-brand">
+        <span class="brand-dot"></span>
+        <span class="brand-name">Aura Design</span>
+      </div>
+      <h2>Admin Portal</h2>
+      <p class="gate-sub">Enter your access code</p>
+      <input
+        type="password"
+        id="gatePassword"
+        class="glass-input"
+        placeholder="Access code"
+        maxlength="10"
+        onkeydown="if(event.key==='Enter') gateCheck()"
+      />
+      <div class="gate-error" id="gateError">Incorrect access code</div>
+      <button class="btn-primary full-width" onclick="gateCheck()">Enter Admin</button>
+      <a href="index.html" class="back-link">Back to Portfolio</a>
+    </div>
+  </div>
+
+  <!-- Admin Dashboard (hidden until authenticated) -->
+  <div id="adminDashboard" class="admin-dashboard hidden">
+
+    <!-- Sidebar -->
+    <aside class="admin-sidebar glass">
+      <div class="sidebar-brand">
+        <span class="brand-dot"></span>
+        <span class="brand-name">Aura</span>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="#" class="sidebar-link active" onclick="showTab('upload')">
+          <span class="sidebar-icon">+</span> Upload
+        </a>
+        <a href="#" class="sidebar-link" onclick="showTab('projects')">
+          <span class="sidebar-icon">&#9776;</span> Projects
+        </a>
+        <a href="#" class="sidebar-link" onclick="showTab('feedback')">
+          <span class="sidebar-icon">&#9998;</span> Feedback
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <button class="btn-ghost" onclick="adminLogout()">Logout</button>
+        <a href="index.html" class="btn-ghost">View Site</a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="admin-main">
+
+      <!-- Upload Tab -->
+      <div id="tab-upload" class="admin-tab">
+        <div class="tab-header">
+          <h2>Upload Project</h2>
+          <p>Add a new design to share with your client</p>
+        </div>
+
+        <div class="upload-form glass">
+          <div class="form-row">
+            <label class="form-label">Project Title</label>
+            <input type="text" id="projectTitle" class="glass-input" placeholder="e.g. Brand Identity — Lumio Coffee" />
+          </div>
+
+          <div class="form-row">
+            <label class="form-label">Category</label>
+            <select id="projectCategory" class="glass-input">
+              <option value="branding">Branding</option>
+              <option value="ui">UI/UX</option>
+              <option value="print">Print</option>
+              <option value="motion">Motion</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <label class="form-label">Client Name (optional)</label>
+            <input type="text" id="clientName" class="glass-input" placeholder="e.g. Lumio Coffee Co." />
+          </div>
+
+          <div class="form-row">
+            <label class="form-label">Description (optional)</label>
+            <textarea id="projectDesc" class="glass-input" rows="3" placeholder="Brief project description..."></textarea>
+          </div>
+
+          <div class="form-row">
+            <label class="form-label">Upload File (image or PDF)</label>
+            <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+              <div class="drop-icon">&#8679;</div>
+              <p class="drop-text">Drop file here or click to browse</p>
+              <p class="drop-sub">JPG, PNG, GIF, WebP or PDF — Max 10MB</p>
+              <input type="file" id="fileInput" accept="image/*,.pdf" hidden onchange="handleFileSelect(event)" />
+            </div>
+            <div class="file-preview" id="filePreview" style="display:none"></div>
+          </div>
+
+          <div class="upload-progress" id="uploadProgress" style="display:none">
+            <div class="progress-bar">
+              <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <span id="progressText">Uploading...</span>
+          </div>
+
+          <div class="form-row">
+            <button class="btn-primary" onclick="uploadProject()" id="uploadBtn">
+              Upload &amp; Generate Client Link
+            </button>
+          </div>
+
+          <!-- Generated Link -->
+          <div class="generated-link glass" id="generatedLink" style="display:none">
+            <label class="form-label">Client Link Generated</label>
+            <div class="link-row">
+              <input type="text" id="clientLinkInput" class="glass-input" readonly />
+              <button class="btn-copy" onclick="copyLink()">Copy</button>
+            </div>
+            <p class="link-hint">Share this link with your client. They can view, download, and leave feedback.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Projects Tab -->
+      <div id="tab-projects" class="admin-tab hidden">
+        <div class="tab-header">
+          <h2>All Projects</h2>
+          <p>Manage your uploaded designs</p>
+        </div>
+        <div class="projects-list" id="adminProjectsList">
+          <div class="loading-spinner"></div>
+        </div>
+      </div>
+
+      <!-- Feedback Tab -->
+      <div id="tab-feedback" class="admin-tab hidden">
+        <div class="tab-header">
+          <h2>Client Feedback</h2>
+          <p>All annotations and comments from clients</p>
+        </div>
+        <div class="feedback-list" id="adminFeedbackList">
+          <div class="loading-spinner"></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Delete Confirm Modal -->
+  <div class="modal-overlay" id="deleteModal" onclick="closeDeleteModal(event)">
+    <div class="modal glass">
+      <h3>Delete Project?</h3>
+      <p>This will permanently remove the project and all client feedback. This cannot be undone.</p>
+      <div style="display:flex;gap:12px;margin-top:24px">
+        <button class="btn-ghost full-width" onclick="closeDeleteModal()">Cancel</button>
+        <button class="btn-danger full-width" id="confirmDeleteBtn">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="supabase-client.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>
