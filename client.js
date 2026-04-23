@@ -60,7 +60,7 @@ function renderProject(project) {
 
   // Download button
   const dlBtn = document.getElementById('downloadBtn');
-  const assetUrl = project.image_url || project.file_url || '';
+  const assetUrl = getProjectAssetUrl(project);
   dlBtn.href = assetUrl;
   dlBtn.download = project.title;
 
@@ -68,7 +68,7 @@ function renderProject(project) {
   const img = document.getElementById('designImage');
   const pdf = document.getElementById('designPdf');
 
-  const isPdf = assetUrl.toLowerCase().includes('.pdf');
+  const isPdf = isPdfAsset(assetUrl);
   if (isPdf) {
     pdf.src = assetUrl;
     pdf.style.display = 'block';
@@ -334,4 +334,12 @@ async function submitAllFeedback() {
     btn.disabled = false;
     btn.textContent = 'Submit Feedback';
   }
+}
+
+function getProjectAssetUrl(project) {
+  return project.image_url || project.file_url || '';
+}
+
+function isPdfAsset(url) {
+  return url.toLowerCase().includes('.pdf');
 }

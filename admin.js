@@ -48,11 +48,12 @@ function adminLogout() {
 }
 
 // ---- Tab switching ----
-function showTab(name) {
+function showTab(name, triggerEl = null) {
   document.querySelectorAll('.admin-tab').forEach(t => t.classList.add('hidden'));
   document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
   document.getElementById(`tab-${name}`).classList.remove('hidden');
-  event.currentTarget.classList.add('active');
+  const activeTrigger = triggerEl || (typeof event !== 'undefined' ? event.currentTarget : null);
+  if (activeTrigger) activeTrigger.classList.add('active');
 
   if (name === 'projects') loadProjects();
   if (name === 'feedback') loadFeedback();
@@ -239,8 +240,8 @@ async function loadProjects() {
       card.className = 'admin-project-card';
       card.style.animationDelay = `${index * 0.06}s`;
 
-      const assetUrl = project.image_url || project.file_url || '';
-      const isPdf = assetUrl.toLowerCase().includes('.pdf');
+      const assetUrl = getProjectAssetUrl(project);
+      const isPdf = isPdfAsset(assetUrl);
       const clientLink = `${getSiteBaseUrl()}/client.html?project=${project.id}`;
       const storagePath = extractStoragePath(assetUrl);
 
@@ -389,4 +390,12 @@ function extractStoragePath(publicUrl) {
   const idx = publicUrl.indexOf(marker);
   if (idx === -1) return '';
   return publicUrl.substring(idx + marker.length);
+}
+
+function getProjectAssetUrl(project) {
+  return project.image_url || project.file_url || '';
+}
+
+function isPdfAsset(url) {
+  return url.toLowerCase().includes('.pdf');
 }
