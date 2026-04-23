@@ -7,6 +7,7 @@ const ADMIN_PASS = '1040';
 let selectedFile = null;
 let deleteTargetId = null;
 let deleteTargetStoragePath = null;
+let hasCategoryColumn = true;
 
 // ---- Init ----
 document.addEventListener('DOMContentLoaded', () => {
@@ -169,7 +170,7 @@ async function uploadProject() {
       user_id: clientName || 'admin'
     };
 
-    await supabase.insert('projects', projectData);
+    await insertProjectWithSchemaFallback(projectData);
 
     progressFill.style.width = '100%';
     progressText.textContent = 'Done!';
@@ -398,4 +399,23 @@ function getProjectAssetUrl(project) {
 
 function isPdfAsset(url) {
   return url.toLowerCase().includes('.pdf');
+}
+
+async function insertProjectWithSchemaFallback(projectData) {
+  if (!hasCategoryColumn) {
+    const { category: _omit, ...withoutCategory } = projectData;
+    return supabase.insert('projects', withoutCategory);
+  }
+
+  try {
+    return await supabase.insert('projects', projectData);
+  } catch (err) {
+    const message = (err && err.message) || '';
+    const categoryMissing = message.includes('PGRST204') && message.includes("'category' column");
+    if (!categoryMissing) throw err;
+
+    hasCategoryColumn = false;
+    const { category: _omit, ...withoutCategory } = projectData;
+    return supabase.insert('projects', withoutCategory);
+  }
 }
