@@ -151,10 +151,12 @@ async function uploadProject() {
     const projectId = crypto.randomUUID();
     const fileExt = selectedFile.name.split('.').pop();
     const storagePath = `projects/${projectId}.${fileExt}`;
+    let fileUploaded = false;
 
     // 1. Upload file to Supabase Storage
     progressText.textContent = 'Uploading file...';
     const fileUrl = await supabase.uploadFile('designs', storagePath, selectedFile);
+    fileUploaded = true;
 
     clearInterval(interval);
     progressFill.style.width = '90%';
@@ -170,7 +172,14 @@ async function uploadProject() {
       user_id: clientName || 'admin'
     };
 
-    await insertProjectWithSchemaFallback(projectData);
+    try {
+      await insertProjectWithSchemaFallback(projectData);
+    } catch (dbErr) {
+      if (fileUploaded) {
+        await supabase.deleteFile('designs', storagePath).catch(() => {});
+      }
+      throw dbErr;
+    }
 
     progressFill.style.width = '100%';
     progressText.textContent = 'Done!';
@@ -411,11 +420,31 @@ async function insertProjectWithSchemaFallback(projectData) {
     return await supabase.insert('projects', projectData);
   } catch (err) {
     const message = (err && err.message) || '';
+    const rlsDenied = message.includes('"code":"42501"') || message.includes('row-level security policy');
+    if (rlsDenied) {
+      throw new Error(
+        'RLS blockiert INSERT auf projects (42501). ' +
+        'Erstelle in Supabase eine INSERT-Policy für anon/authenticated oder deaktiviere RLS für diese Tabelle.'
+      );
+    }
+
     const categoryMissing = message.includes('PGRST204') && message.includes("'category' column");
     if (!categoryMissing) throw err;
 
     hasCategoryColumn = false;
     const { category: _omit, ...withoutCategory } = projectData;
-    return supabase.insert('projects', withoutCategory);
+    try {
+      return await supabase.insert('projects', withoutCategory);
+    } catch (fallbackErr) {
+      const fallbackMessage = (fallbackErr && fallbackErr.message) || '';
+      const rlsDeniedFallback = fallbackMessage.includes('"code":"42501"') || fallbackMessage.includes('row-level security policy');
+      if (rlsDeniedFallback) {
+        throw new Error(
+          'RLS blockiert INSERT auf projects (42501). ' +
+          'Erstelle in Supabase eine INSERT-Policy für anon/authenticated oder deaktiviere RLS für diese Tabelle.'
+        );
+      }
+      throw fallbackErr;
+    }
   }
 }
